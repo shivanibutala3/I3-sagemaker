@@ -1,0 +1,326 @@
+{
+  "metadata": {
+    "version": 1,
+    "disable_limits": false
+  },
+  "nodes": [
+    {
+      "node_id": "6249b286-5e96-4a30-aa32-d4853731f49f",
+      "type": "SOURCE",
+      "operator": "sagemaker.s3_source_0.1",
+      "parameters": {
+        "dataset_definition": {
+          "__typename": "S3CreateDatasetDefinitionOutput",
+          "datasetSourceType": "S3",
+          "name": "movies.csv",
+          "description": null,
+          "s3ExecutionContext": {
+            "__typename": "S3ExecutionContext",
+            "s3Uri": "s3://i3-bucket/movies_dataset/movies.csv",
+            "s3ContentType": "csv",
+            "s3HasHeader": true,
+            "s3FieldDelimiter": ",",
+            "s3DirIncludesNested": false,
+            "s3AddsFilenameColumn": false
+          }
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "default",
+          "sampling": {
+            "sampling_method": "sample_by_limit",
+            "limit_rows": 50000
+          }
+        }
+      ]
+    },
+    {
+      "node_id": "c45e3279-7993-482f-b2fd-1f84e3447ad3",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.infer_and_cast_type_0.1",
+      "parameters": {},
+      "trained_parameters": {
+        "schema": {
+          "movieId": "long",
+          "title": "string",
+          "genres": "string"
+        }
+      },
+      "inputs": [
+        {
+          "name": "default",
+          "node_id": "6249b286-5e96-4a30-aa32-d4853731f49f",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "21ac53e0-5e50-47ce-ba0b-ddebdabb44ba",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.custom_pandas_0.1",
+      "parameters": {
+        "code": "# Table is available as variable `df`\ndf['genres'] = df.genres.str.split('|')\ndf['genres']\n\n\n"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "c45e3279-7993-482f-b2fd-1f84e3447ad3",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "24b24ae8-a7af-42e5-8d98-1c42f959b54e",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.custom_pandas_0.1",
+      "parameters": {
+        "code": "# Table is available as variable `df`\nx = []\nfor index, row in df.iterrows():\n    x.append(index)\n    for genre in row['genres']:\n        df.at[index, genre] = 1"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "21ac53e0-5e50-47ce-ba0b-ddebdabb44ba",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "c642b113-b353-45e0-862d-a03b010484f6",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.handle_missing_0.1",
+      "parameters": {
+        "operator": "Fill missing",
+        "fill_missing_parameters": {
+          "input_column": [
+            "Adventure",
+            "Comedy",
+            "Romance",
+            "Horror",
+            "Mystery",
+            "Thriller",
+            "Drama",
+            "Action",
+            "Fantasy",
+            "Crime",
+            "Sci-Fi"
+          ],
+          "fill_value": "0"
+        },
+        "impute_parameters": {
+          "column_type": "Numeric",
+          "numeric_parameters": {
+            "strategy": "Approximate Median"
+          }
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "24b24ae8-a7af-42e5-8d98-1c42f959b54e",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "48efca3b-2f72-4eda-a0f1-c9f9c9806f51",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": [
+            "Animation",
+            "Children",
+            "War",
+            "Documentary",
+            "IMAX",
+            "Musical",
+            "Film-Noir",
+            "Western"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "c642b113-b353-45e0-862d-a03b010484f6",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "5cee7cd8-75c3-4164-9369-53ba99c85767",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": [
+            "genres"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "48efca3b-2f72-4eda-a0f1-c9f9c9806f51",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "9725b2d1-6583-4865-973e-8dabaa4c803a",
+      "type": "SOURCE",
+      "operator": "sagemaker.s3_source_0.1",
+      "parameters": {
+        "dataset_definition": {
+          "__typename": "S3CreateDatasetDefinitionOutput",
+          "datasetSourceType": "S3",
+          "name": "ratings.csv",
+          "description": null,
+          "s3ExecutionContext": {
+            "__typename": "S3ExecutionContext",
+            "s3Uri": "s3://i3-bucket/movies_dataset/ratings.csv",
+            "s3ContentType": "csv",
+            "s3HasHeader": true,
+            "s3FieldDelimiter": ",",
+            "s3DirIncludesNested": false,
+            "s3AddsFilenameColumn": false
+          }
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "default",
+          "sampling": {
+            "sampling_method": "sample_by_limit",
+            "limit_rows": 50000
+          }
+        }
+      ]
+    },
+    {
+      "node_id": "5d9d21cc-9bdf-40fa-8ead-172f6ef4a7e3",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.infer_and_cast_type_0.1",
+      "parameters": {},
+      "trained_parameters": {
+        "schema": {
+          "userId": "long",
+          "movieId": "long",
+          "rating": "float",
+          "timestamp": "long"
+        }
+      },
+      "inputs": [
+        {
+          "name": "default",
+          "node_id": "9725b2d1-6583-4865-973e-8dabaa4c803a",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "74f6bd61-ad9c-41e0-bbb7-683dbbe9638d",
+      "type": "VISUALIZATION",
+      "operator": "sagemaker.visualizations.histogram_0.1",
+      "parameters": {
+        "name": "Ratings",
+        "x_axis": "rating",
+        "color_by": "rating"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "5d9d21cc-9bdf-40fa-8ead-172f6ef4a7e3",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "623deb88-3df6-40ac-a58a-28a73ec1287e",
+      "type": "VISUALIZATION",
+      "operator": "sagemaker.visualizations.histogram_0.1",
+      "parameters": {
+        "name": "User counts",
+        "x_axis": "userId",
+        "color_by": "userId"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "5d9d21cc-9bdf-40fa-8ead-172f6ef4a7e3",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "7f6124e4-9b3f-4549-bce6-1dd997c421d1",
+      "type": "VISUALIZATION",
+      "operator": "sagemaker.visualizations.describe_0.1",
+      "parameters": {
+        "name": "Summary"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "6249b286-5e96-4a30-aa32-d4853731f49f",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    }
+  ]
+}
